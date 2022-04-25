@@ -1,48 +1,60 @@
+from concurrent.futures import process
 from datetime import datetime
 from lib2to3.pgen2 import token
+from logging import exception
 from urllib import response
 from click import password_option
+from django.http import HttpRequest
 from django.shortcuts import render
+from httplib2 import Authentication
 from rest_framework.views import APIView
-from .serializers import UserSerializer
+# from .serializers import UserSerializer
 from rest_framework.response import Response
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
+from .models import User
 from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth.hashers import make_password, check_password
 import jwt, datetime
+import json
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.decorators import authentication_classes, permission_classes
+from OAuth import settings
 
 # Create your views here.
 class RegisterView(APIView):
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
+        email = request.data['email']
+        username = request.data['username']
+        password = make_password(request.data['password'])
+        User(email, username, password).save()
+        return Response((
+            request.data
+        ))
 
 class LoginView(APIView):
     def post(self, request):
         email = request.data['email']
         password = request.data['password']
 
-        user = User.objects.filter(email=email).first()
-
+        user = User.objects.raw({'_id':email}).first()
         if user is None:
-            raise AuthenticationFailed('User not found')
-
-        if not user.check_password(password):
-            raise AuthenticationFailed('Incorrect password')
+            raise exception()
+            
+        if not check_password(password, user.password):
+            raise exception()
 
         payload = {
-            'id': user.id,
+            'id': user.email,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
             'iat': datetime.datetime.utcnow()
         }
 
-        token = jwt.encode(payload, 'secret', algorithm='HS256').decode('utf-8')
-
+        # token = jwt.encode(payload, 'secret', algorithm='HS256').decode('utf-8')
+        token = jwt.encode(payload, settings.SECRET_KEY)
         response = Response()
 
-        response.set_cookie(key='jwt', value=token, httponly=True)
         response.data = {
             'jwt': token
         }
@@ -52,19 +64,13 @@ class LoginView(APIView):
 
 class UserView(APIView):
     def get(self, request):
-        token = request.COOKIES.get('jwt')
-
-        if not token:
-            raise AuthenticationFailed('Unauthorized user')
-
-        try:
-            payload = jwt.decode(token, 'secret', algorithm=['HS256'])
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed('Unauthorized user')
-
-        user = User.objects.filter(id=payload['id']).first()
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+        token = request.headers
+        payload = jwt.decode(token['Authorization'], settings.SECRET_KEY)
+        user = User.objects.raw({'_id':payload['id']}).first()
+        return Response({
+            "email":user.email,
+            "username":user.username
+        })
 
 
 class LogoutView(APIView):

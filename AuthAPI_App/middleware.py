@@ -8,7 +8,6 @@ from OAuth import settings
 from rest_framework.response import Response
 from rest_framework import status
 from django.http import JsonResponse
-# from django.core.urlresolvers import resolve
 from django.urls import (get_resolver, get_urlconf, resolve, reverse, NoReverseMatch)
 
 
@@ -19,19 +18,19 @@ class MyMiddleware:
     def __call__(self, request):
         # print(vars(request))
         # print(request.body)
-        NO_AUTHORIZATION_REQUIRED_URLS = ['api/register', 'api/login']
+        NO_AUTHORIZATION_REQUIRED_URLS = ['api/register', 'api/login', 'api/refresh-token']
         if resolve(request.path).route not in NO_AUTHORIZATION_REQUIRED_URLS:
             token = request.headers
             try:
                 jwt.decode(token['Authorization'], settings.SECRET_KEY)
             except:
                 return JsonResponse({
-                    'message': 'Not a valid user'
-                    }, status=403)
+                    'message': 'Not a valid token'
+                    }, status=401)
         response = self.get_response(request)
         return response
 
-    def process_exception(self, request, exception):
-        return JsonResponse({
-            'message':'Invalid credentials'
-        }, status=401)
+    # def process_exception(self, request, exception):
+    #     return JsonResponse({
+    #         'message':'Invalid credentials'
+    #     }, status=401)

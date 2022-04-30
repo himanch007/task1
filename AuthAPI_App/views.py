@@ -146,6 +146,13 @@ class RefreshTokenView(APIView):
 
 class LogoutView(APIView):
     def post(self, request):
+        token = request.headers
+        access_token = "b'"+token['Authorization']+"'"
+        if(token['Device'] == 'Desktop'):
+            Desktop_token.objects.raw({'access_token':access_token}).first().delete()
+        elif(token['Device'] == 'Mobile'):
+            Mobile_token.objects.raw({'access_token':access_token}).first().delete()
+        
         response = Response()
         response.data = {
             'message': 'Logged out successfully'

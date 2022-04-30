@@ -9,7 +9,7 @@ from django.shortcuts import render
 from httplib2 import Authentication
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import User
+from .models import User, Desktop_token, Mobile_token
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth.hashers import make_password, check_password
 import jwt, datetime
@@ -75,8 +75,18 @@ class LoginView(APIView):
             }, status=401)
         
         access_token = get_access_token(user)
-        print(access_token)
         refresh_token = get_refresh_token(user)
+
+        token = request.headers
+        if(token['Device'] == 'Desktop'):
+            Desktop_token(user._id, access_token, refresh_token).save()
+        elif(token['Device'] == 'Mobile'):
+            Mobile_token(user._id, access_token, refresh_token).save()
+        else:
+            return JsonResponse({
+                'message': 'Device name not found'
+            })
+
         response = Response()
 
         response.data = {
@@ -101,9 +111,31 @@ class UserView(APIView):
 class RefreshTokenView(APIView):
     def post(self, request):
         token = request.headers
+        refresh_token = "b'"+token['Authorization']+"'"
+        try:
+            if(token['Device'] == 'Desktop'):
+                user = Desktop_token.objects.raw({'refresh_token':refresh_token}).first()
+                decode_refresh_token(token)
+            elif(token['Device'] == 'Mobile'):
+                user = Mobile_token.objects.raw({'refresh_token':refresh_token}).first()
+                decode_refresh_token(token)
+            else:
+                return JsonResponse({
+                    'message': 'Device not found'
+                })
+        except:
+            return JsonResponse({
+                "message": "Token expired"
+            }, status=401)
         payload = decode_refresh_token(token)
         user = User.objects.raw({'_id':ObjectId(payload['id'])}).first()
         new_access_token = get_access_token(user)
+
+        if(token['Device'] == 'Desktop'):
+            Desktop_token(user._id, new_access_token, "null").save()
+        elif(token['Device'] == 'Mobile'):
+            Mobile_token(user._id, new_access_token, "null").save()
+
         response = Response()
 
         response.data = {
@@ -114,10 +146,6 @@ class RefreshTokenView(APIView):
 
 class LogoutView(APIView):
     def post(self, request):
-        # access_token = request.data['access_token']
-        # refresh_token = request.data['refresh_token']
-        # decoded_access_token = decode_access_token(access_token)
-        # decoded_access_token['exp'] = datetime.datetime.utcnow()
         response = Response()
         response.data = {
             'message': 'Logged out successfully'

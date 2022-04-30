@@ -7,7 +7,7 @@ import json
 def get_access_token(user):
     payload = {
             'id': str(user._id),
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=10),
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1),
             'iat': datetime.datetime.utcnow()
         }
     return jwt.encode(payload, settings.SECRET_KEY)
@@ -15,7 +15,7 @@ def get_access_token(user):
 def get_refresh_token(user):
     refresh_payload = {
             'id': str(user._id),
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=50),
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=3),
             'iat': datetime.datetime.utcnow()
         }
     return jwt.encode(refresh_payload, settings.REFRESH_KEY)

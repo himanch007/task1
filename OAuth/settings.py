@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 from pymodm.connection import connect
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,7 +34,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'AuthAPI_App.apps.AuthapiAppConfig',
+    'django_crontab',
+    'AuthAPI_App',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -46,6 +48,11 @@ INSTALLED_APPS = [
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
+
+CRONJOBS = [
+    ('*/1 * * * *', 'AuthAPI_App.cron.desktop_token_remover'),
+    ('*/1 * * * *', 'AuthAPI_App.cron.mobile_token_remover')
+]
 
 
 REST_FRAMEWORK = {

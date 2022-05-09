@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-n0i_$e6%zlh(cb$8nm7dp50cz@&0cquh0yam%$p6bu77h%g4kz'
 REFRESH_KEY = 'django-refresh-secret-insecure-n0i_$e6%zlh(cb$8nm7dp50cz@&0cquh0yam%$p6bu77h%g4kz'
+YOUTUBE_DATA_API_KEY = 'AIzaSyBxSs5TN-xN2SJRRc1AwkL7Uy-rTMSIweQ'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -44,7 +45,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'django_elasticsearch_dsl',
+    'django_elasticsearch_dsl_drf',
 ]
+
+ELASTICSEARCH_DSL = {
+    'default': {
+        "hosts": "localhost:9200"
+    }
+}
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True

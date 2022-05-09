@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, LoginView, UserView, RefreshTokenView, LogoutView
+from .views import RegisterView, LoginView, UserView, RefreshTokenView, LogoutView, YoutubeView
 from rest_framework.authtoken import views
 
 
@@ -9,4 +9,5 @@ urlpatterns = [
     path('user', UserView.as_view()),
     path('logout', LogoutView.as_view()),
     path('refresh-token', RefreshTokenView.as_view()),
+    path('youtube', YoutubeView.as_view()),
 ]

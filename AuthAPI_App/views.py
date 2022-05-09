@@ -4,7 +4,7 @@ from lib2to3.pgen2 import token
 from logging import exception
 from urllib import response
 from click import password_option
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from httplib2 import Authentication
 from rest_framework.views import APIView
@@ -22,6 +22,8 @@ from OAuth import settings
 from .token_generator import get_access_token, get_refresh_token, decode_access_token, decode_refresh_token
 from django.http import JsonResponse
 from bson import ObjectId
+import requests
+from .tasks import add
 
 
 # Create your views here.
@@ -159,3 +161,39 @@ class LogoutView(APIView):
         }
 
         return response
+
+
+class YoutubeView(APIView):
+    def post(self, request):
+        search_url = 'https://www.googleapis.com/youtube/v3/search'
+        video_url = 'https://www.googleapis.com/youtube/v3/videos'
+        search_params = {
+            'part': 'snippet',
+            'q': request.data['q'],
+            'key': settings.YOUTUBE_DATA_API_KEY,
+            'maxResults': 10,
+            'type': 'video'
+        }
+        video_ids = []
+        r = requests.get(search_url, params=search_params)
+        results = r.json()['items']
+        for result in results:
+            video_ids.append(result['id']['videoId'])
+        
+        video_params = {
+            'key': settings.YOUTUBE_DATA_API_KEY,
+            'part': 'snippet,contentDetails',
+            'id': ','.join(video_ids)
+        }
+        r = requests.get(video_url, params=video_params)
+        results = r.json()['items']
+        for result in results:
+            title = result['snippet']['title']
+            id = result['id']
+            duration = result['contentDetails']['duration']
+            url = result['snippet']['thumbnails']['high']['url']
+            add.delay(title, id.lower(), duration, url)
+        # print("=====>",add.delay("a","b"))
+        return Response({
+            "message": "Data has been added"
+        })

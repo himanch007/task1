@@ -187,13 +187,30 @@ class YoutubeView(APIView):
         }
         r = requests.get(video_url, params=video_params)
         results = r.json()['items']
+
+        # Existing data
+        ab = requests.get("http://localhost:9200/youtube_data/_search?size=1000")
+        # print(ab.json()['hits']['hits'][0])
+        existing_list = []
+        new_list = []
+        total_data = ab.json()['hits']['total']['value']
+        for i in range(total_data):
+            existing_list.append(ab.json()['hits']['hits'][i]['_source']['id'])
         for result in results:
             title = result['snippet']['title']
             id = result['id']
             duration = result['contentDetails']['duration']
             url = result['snippet']['thumbnails']['high']['url']
-            add.delay(title, id.lower(), duration, url)
+
+            # Gets the date and removes time
+            date = str(datetime.datetime.now())[0:10]
+            # print(date[0:10])
+            if id not in existing_list:
+                new_list.append(id)
+                add.delay(title, id, duration, url, date)
+        
         # print("=====>",add.delay("a","b"))
         return Response({
-            "message": "Data has been added"
+            "existing_list": existing_list,
+            "new_list": new_list
         })

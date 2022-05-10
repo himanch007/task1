@@ -3,12 +3,13 @@ from celery import shared_task
 import requests
 
 @shared_task
-def add(title, id, duration, url):
+def add(title, id, duration, url, date):
     myobj = {"title": title,
-    "id": id,
-    "duration": duration,
-    "url": url
-    }
+            "id": id,
+            "duration": duration,
+            "url": url,
+            "date": date
+            }
     elasticsearch_url = 'http://127.0.0.1:9200/youtube_data/_doc/' + id
     # elasticsearch_url = 'http://127.0.0.1:9200/' + id + '/_doc/' + id
     re = requests.post(elasticsearch_url, json=myobj)

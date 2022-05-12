@@ -13,7 +13,8 @@ from rest_framework.response import Response
 from .models import User, Desktop_token, Mobile_token
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth.hashers import make_password, check_password
-import jwt, datetime
+import jwt
+from datetime import datetime
 import json
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -214,11 +215,16 @@ class YoutubeView(APIView):
         for result in results:
             if(result['id'] not in existing_videos):
                 new_list.append({result['id']:result['snippet']['title']})
+
+                date = str(datetime.now())[2:19]
+                date_time_obj = datetime.strptime(date, '%y-%m-%d %H:%M:%S')
+                
                 data_to_be_inserted.append({
                     "id": result['id'],
                     "title": result['snippet']['title'],
                     "duration": result['contentDetails']['duration'],
-                    "url": result['snippet']['thumbnails']['high']['url']
+                    "url": result['snippet']['thumbnails']['high']['url'],
+                    "date": date_time_obj
                 })
 
         add.delay(data_to_be_inserted)

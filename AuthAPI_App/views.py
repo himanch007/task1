@@ -6,6 +6,7 @@ from urllib import response
 from click import password_option
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+import elasticsearch
 from httplib2 import Authentication
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -188,28 +189,39 @@ class YoutubeView(APIView):
         r = requests.get(video_url, params=video_params)
         results = r.json()['items']
 
-        # Existing data
-        ab = requests.get("http://localhost:9200/youtube_data/_search?size=1000")
-        # print(ab.json()['hits']['hits'][0])
-        existing_list = []
-        new_list = []
-        total_data = ab.json()['hits']['total']['value']
-        for i in range(total_data):
-            existing_list.append(ab.json()['hits']['hits'][i]['_source']['id'])
-        for result in results:
-            title = result['snippet']['title']
-            id = result['id']
-            duration = result['contentDetails']['duration']
-            url = result['snippet']['thumbnails']['high']['url']
 
-            # Gets the date and removes time
-            date = str(datetime.datetime.now())[0:10]
-            # print(date[0:10])
-            if id not in existing_list:
-                new_list.append(id)
-                add.delay(title, id, duration, url, date)
-        
-        # print("=====>",add.delay("a","b"))
+        check_list = []
+        for result in results:
+            check_list.append(result['id'])
+        search_query = {
+                        "query": {
+                            "terms": {
+                            "id": check_list
+                            }
+                        }
+                        }
+
+        elasticsearch_url = settings.ELASTICSEARCH_URL
+        elasticsearch_index = settings.ELASTICSEARCH_INDEXES['youtube_data_index']
+        search_url = elasticsearch_url + elasticsearch_index + "_search"
+
+        response = requests.get(search_url, json=search_query)
+
+        existing_list = [{x['_source']['id']:x['_source']['title']} for x in response.json()['hits']['hits']]
+        new_list = []
+        data_to_be_inserted = []
+        existing_videos = [i for s in [d.keys() for d in existing_list] for i in s]
+        for result in results:
+            if(result['id'] not in existing_videos):
+                new_list.append({result['id']:result['snippet']['title']})
+                data_to_be_inserted.append({
+                    "id": result['id'],
+                    "title": result['snippet']['title'],
+                    "duration": result['contentDetails']['duration'],
+                    "url": result['snippet']['thumbnails']['high']['url']
+                })
+
+        add.delay(data_to_be_inserted)
         return Response({
             "existing_list": existing_list,
             "new_list": new_list

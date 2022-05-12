@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-n0i_$e6%zlh(cb$8nm7dp50cz@&0cquh0yam%$p6bu77h%g4kz'
 REFRESH_KEY = 'django-refresh-secret-insecure-n0i_$e6%zlh(cb$8nm7dp50cz@&0cquh0yam%$p6bu77h%g4kz'
-YOUTUBE_DATA_API_KEY = 'AIzaSyBxSs5TN-xN2SJRRc1AwkL7Uy-rTMSIweQ'
+YOUTUBE_DATA_API_KEY = 'AIzaSyBOk92dFNPTPeSKKcJG5_7xhkLZW8QqHZg'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -150,3 +150,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+ELASTICSEARCH_URL = 'http://localhost:9200/'
+
+ELASTICSEARCH_INDEXES = {
+    'youtube_data_index':'youtube_data/'
+}

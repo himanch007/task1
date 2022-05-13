@@ -26,6 +26,7 @@ from django.http import JsonResponse
 from bson import ObjectId
 import requests
 from .tasks import add
+from .queries import get_terms_query
 
 
 # Create your views here.
@@ -194,13 +195,8 @@ class YoutubeView(APIView):
         check_list = []
         for result in results:
             check_list.append(result['id'])
-        search_query = {
-                        "query": {
-                            "terms": {
-                            "id": check_list
-                            }
-                        }
-                        }
+        
+        search_query = get_terms_query(check_list)
 
         elasticsearch_url = settings.ELASTICSEARCH_URL
         elasticsearch_index = settings.ELASTICSEARCH_INDEXES['youtube_data_index']

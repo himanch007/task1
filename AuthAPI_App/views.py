@@ -26,7 +26,8 @@ from django.http import JsonResponse
 from bson import ObjectId
 import requests
 from .tasks import add
-from .queries import get_terms_query
+from .queries import get_terms_query, get_user
+from .error_messages import error_message_401
 
 
 # Create your views here.
@@ -35,78 +36,70 @@ class RegisterView(APIView):
         email = request.data['email']
         username = request.data['username']
         password = make_password(request.data['password'])
-
+        
+        user = get_user(request)
+        
         try:
-            user = User.objects.raw({'email':email}).first()
+            if user.status_code == 401:
+                if not email:
+                    return error_message_401("email is required")
+
+                if not username:
+                    return error_message_401("username is required")
+                    
+                if not request.data['password']:
+                    return error_message_401("password is required")
+
+                User(email, username, password).save()
+                return Response({
+                    "email": email,
+                    "username": username
+                }, status=201)
+        except:
             return JsonResponse({
                     "message": "This email already exists"
-                }, status=409)
-        except:
-            if not email:
-                return JsonResponse({
-                    "message": "email is required"
                 }, status=401)
-
-            if not username:
-                return JsonResponse({
-                    "message": "username is required"
-                }, status=401)
-            
-            if not request.data['password']:
-                return JsonResponse({
-                    "message": "password is required"
-                }, status=401)
-
-            User(email, username, password).save()
-            return Response({
-                "email": email,
-                "username": username
-            }, status=201)
+        
+        
 
 class LoginView(APIView):
     def post(self, request):
-        email = request.data['email']
         password = request.data['password']
-        try:
-            user = User.objects.raw({'email':email}).first()
-        except:
-            return JsonResponse({
-                "message": "Email not found"
-            }, status=401)
-            
-        if not check_password(password, user.password):
-            return JsonResponse({
-                "message": "Incorrect password"
-            }, status=401)
         
-        access_token = get_access_token(user)
-        refresh_token = get_refresh_token(user)
+        user = get_user(request)
+        try:
+            if user.status_code == 401:
+                return user
+        except:    
+            if not check_password(password, user.password):
+                return error_message_401("Incorrect password")
+            
+            access_token = get_access_token(user)
+            refresh_token = get_refresh_token(user)
 
-        token = request.headers
-        if(token['Device'] == 'Desktop'):
-            Desktop_token(user._id, access_token, refresh_token).save()
-        elif(token['Device'] == 'Mobile'):
-            Mobile_token(user._id, access_token, refresh_token).save()
-        else:
-            return JsonResponse({
-                'message': 'Device name not found'
-            })
+            token = request.headers
+            if(token['Device'] == 'Desktop'):
+                Desktop_token(user._id, access_token, refresh_token).save()
+            elif(token['Device'] == 'Mobile'):
+                Mobile_token(user._id, access_token, refresh_token).save()
+            else:
+                return JsonResponse({
+                    'message': 'Device name not found'
+                })
 
-        response = Response()
+            response = Response()
 
-        response.data = {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }
+            response.data = {
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }
 
-        return response
+            return response
 
 
 class UserView(APIView):
     def get(self, request):
-        token = request.headers
-        payload = decode_access_token(token)
-        user = User.objects.raw({'_id':ObjectId(payload['id'])}).first()
+        user = get_user(request)
         return Response({
             "email":user.email,
             "username":user.username
